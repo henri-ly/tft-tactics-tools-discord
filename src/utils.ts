@@ -58,17 +58,8 @@ export function compareRanks(a: string, b: string): number {
   return rankIndexA - rankIndexB; // Compare ranks
 }
 
-export function getColorForRank(rank: string): string {
-  if (rank.includes("Challenger")) return "#FF0000"; // Red
-  if (rank.includes("Grandmaster")) return "#FF4500"; // OrangeRed
-  if (rank.includes("Master")) return "#8A2BE2"; // BlueViolet
-  if (rank.includes("Diamond")) return "#00FFFF"; // Aqua
-  if (rank.includes("Platinum")) return "#00FF00"; // Lime
-  if (rank.includes("Gold")) return "#FFD700"; // Gold
-  if (rank.includes("Silver")) return "#C0C0C0"; // Silver
-  if (rank.includes("Bronze")) return "#CD7F32"; // Bronze
-  return "#808080"; // Default Gray for Iron
-}
+export const getURL = (id: string, region = "euw") =>
+  encodeURI(`https://tactics.tools/player/${region}/${id.replace("#", "/")}`);
 
 export function getMedalForRank(index: number): string {
   switch (index) {
@@ -79,7 +70,7 @@ export function getMedalForRank(index: number): string {
     case 2:
       return "🥉"; // Bronze medal
     default:
-      return (index + 1).toString();
+      return " " + (index + 1).toString();
   }
 }
 
@@ -102,7 +93,7 @@ export function createLeaderboardEmbed(data: Player[]): EmbedBuilder {
     name: `ID / Name`,
     value: data
       .map((entry) => {
-        return entry.id;
+        return `[${entry.id}](${getURL(entry.id)})`;
       })
       .join("\n"),
     inline: true,

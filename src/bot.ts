@@ -1,24 +1,9 @@
-import {
-  AttachmentBuilder,
-  Client,
-  Events,
-  GatewayIntentBits,
-  REST,
-  Routes,
-} from "discord.js";
+import { Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
 import "dotenv/config";
 import fs from "fs";
-import path from "path";
-import { chromium } from "playwright";
 import { env } from "process";
-import {
-  compareRanks,
-  compressImage,
-  createLeaderboardEmbed,
-  Player,
-} from "./utils";
-
-const idsFilePath = path.join(__dirname, "../", "ids.json");
+import { addId, idsFilePath } from "./commands/add";
+import { checkIfPlayerExist, generateEmbedLeaderboard } from "./commands/rank";
 
 // // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -101,106 +86,15 @@ client.on("interactionCreate", async (interaction) => {
 
     console.log("Generating leaderboard...");
     await interaction.deferReply();
-    const promiseIds: (Player | undefined)[] = ids.map(async (id: string) => {
-      const formatId = id.replace("#", "/");
-      return takeScreenshot(`https://tactics.tools/player/euw/${formatId}`, id);
-    });
 
-    const screenedPlayers = (await Promise.all(promiseIds)).filter(
-      Boolean
-    ) as Player[];
-
-    screenedPlayers.sort(({ rank: rankA }, { rank: rankB }) => {
-      return compareRanks(rankA, rankB);
-    });
-
-    await setIds(screenedPlayers.map(({ id }) => id));
-
-    const files = screenedPlayers.map(({ path }) => {
-      return new AttachmentBuilder(path);
-    });
-
-    const embed = createLeaderboardEmbed(screenedPlayers);
-    console.log("Leaderboard created");
+    const { embed, files } = await generateEmbedLeaderboard(ids);
 
     await interaction.editReply({ embeds: [embed], files });
+    console.log(
+      "Leaderboard created successfully at " + new Date().toISOString()
+    );
   }
 });
-
-async function addId(id: string): Promise<void> {
-  let ids: string[] = [];
-  if (fs.existsSync(idsFilePath)) {
-    const data = fs.readFileSync(idsFilePath, "utf-8");
-    ids = JSON.parse(data);
-  } else {
-    fs.writeFileSync(idsFilePath, JSON.stringify(ids, null, 2), "utf-8");
-  }
-  ids.push(id);
-  console.log("id added", id);
-  const removeDuplicate = new Set(ids);
-
-  fs.writeFileSync(
-    idsFilePath,
-    JSON.stringify([...removeDuplicate], null, 2),
-    "utf-8"
-  );
-}
-
-async function setIds(ids: string[]): Promise<void> {
-  fs.writeFileSync(idsFilePath, JSON.stringify(ids, null, 2), "utf-8");
-}
-
-async function checkIfPlayerExist(id: string): Promise<boolean> {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  const formatId = id.replace("#", "/");
-  const url = `https://tactics.tools/player/euw/${formatId}`;
-  await page.goto(url);
-  await page.getByRole("button", { name: "Accept" }).click();
-  if (await page.getByText("Summoner ").isVisible()) {
-    await browser.close();
-    return false;
-  }
-  return true;
-}
-
-async function takeScreenshot(
-  url: string,
-  id: string
-): Promise<Player | undefined> {
-  if (!(await checkIfPlayerExist(id))) {
-    return undefined;
-  }
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  const screenshotPath = path.join(__dirname, "../screens", `${id}.png`);
-  await page.goto(url);
-  await page.getByRole("button", { name: "Accept" }).click();
-  await page.getByRole("tab", { name: "Ranked" }).click();
-  await page.locator("#menu").evaluate((el) => (el.style.display = "none"));
-  await page
-    .locator("div")
-    .filter({ hasText: /^LeaderboardsWrapped$/ })
-    .first()
-    .evaluate((el) => (el.style.display = "none"));
-  await page
-    .locator("div:nth-child(2) > div:nth-child(2) > div:nth-child(2)")
-    .first()
-    .screenshot({
-      path: screenshotPath,
-    });
-
-  const rank = await page
-    .locator(
-      '//*[@id="content-container"]/div/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div[7]/div[2]/div[1]'
-    )
-    .allTextContents();
-
-  await browser.close();
-  console.log(`Screenshot taken for ${id}`);
-  await compressImage(screenshotPath);
-  return { rank: rank[0], path: `./screens/${id}_compressed.png`, id };
-}
 
 // Log in to Discord with your client's token
 client.login(env.DISCORD_TOKEN);
