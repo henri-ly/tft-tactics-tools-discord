@@ -86,7 +86,7 @@ client.on("interactionCreate", async (interaction) => {
     const data = fs.readFileSync(idsFilePath, "utf-8");
     const ids = JSON.parse(data);
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const promiseIds = ids.map(async (id: string) => {
       const formatId = id.replace("#", "/");
       return takeScreenshot(`https://tactics.tools/player/euw/${formatId}`, id);
