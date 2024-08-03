@@ -79,7 +79,7 @@ export function getMedalForRank(index: number): string {
     case 2:
       return "🥉"; // Bronze medal
     default:
-      return "";
+      return (index + 1).toString();
   }
 }
 
@@ -90,17 +90,32 @@ export function createLeaderboardEmbed(data: Player[]): EmbedBuilder {
     .setTitle("Leaderboard TFT - by Henri")
     .setColor("#FFD700"); // Set a default color
 
-  embed.setDescription("use !add <id#TAG> to add your id to the leaderboard");
+  embed.setDescription("use /add <id#TAG> to add your ID to the leaderboard");
 
-  const fieldValue = data.map((entry, index) => {
-    const medal = getMedalForRank(index);
-    return `${medal ?? index + 1} - ${entry.id} - ${entry.rank}`;
+  embed.addFields({
+    name: `#`,
+    value: data.map((_, index) => getMedalForRank(index)).join("\n"),
+    inline: true,
   });
 
   embed.addFields({
-    name: `# - ID - Rank`,
-    value: fieldValue.join("\n"),
-    inline: false,
+    name: `ID / Name`,
+    value: data
+      .map((entry) => {
+        return entry.id;
+      })
+      .join("\n"),
+    inline: true,
+  });
+
+  embed.addFields({
+    name: `Rank`,
+    value: data
+      .map((entry) => {
+        return entry.rank;
+      })
+      .join("\n"),
+    inline: true,
   });
 
   embed.setTimestamp(new Date());

@@ -70,15 +70,28 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.commandName === "add") {
     const id = interaction.options.getString("id");
 
+    await interaction.deferReply();
     if (id && id.length < 30) {
       if (!id.includes("#")) {
-        interaction.reply("Please provide a valid ID. (ID should contain #)");
+        await interaction.editReply(
+          "Please provide a valid ID. (ID should contain #)"
+        );
+      } else if (!(await checkIfPlayerExist(id))) {
+        const formatId = id.replace("#", "/");
+        const url = `https://tactics.tools/player/euw/${formatId}`;
+        await interaction.editReply(
+          "Player not found. Please provide a valid ID. check [here](" +
+            url +
+            ")"
+        );
       } else {
         await addId(id);
-        interaction.reply(`ID ${id} added successfully!`);
+        await interaction.editReply(
+          `ID ${id} added successfully! You can now use /rank to generate a Leaderboard`
+        );
       }
     } else {
-      interaction.reply("Please provide an ID.");
+      await interaction.editReply("Please provide an ID.");
     }
   }
 
@@ -86,16 +99,22 @@ client.on("interactionCreate", async (interaction) => {
     const data = fs.readFileSync(idsFilePath, "utf-8");
     const ids = JSON.parse(data);
 
+    console.log("Generating leaderboard...");
     await interaction.deferReply();
-    const promiseIds = ids.map(async (id: string) => {
+    const promiseIds: (Player | undefined)[] = ids.map(async (id: string) => {
       const formatId = id.replace("#", "/");
       return takeScreenshot(`https://tactics.tools/player/euw/${formatId}`, id);
     });
 
-    const screenedPlayers: Player[] = await Promise.all(promiseIds);
+    const screenedPlayers = (await Promise.all(promiseIds)).filter(
+      Boolean
+    ) as Player[];
+
     screenedPlayers.sort(({ rank: rankA }, { rank: rankB }) => {
       return compareRanks(rankA, rankB);
     });
+
+    await setIds(screenedPlayers.map(({ id }) => id));
 
     const files = screenedPlayers.map(({ path }) => {
       return new AttachmentBuilder(path);
@@ -104,7 +123,7 @@ client.on("interactionCreate", async (interaction) => {
     const embed = createLeaderboardEmbed(screenedPlayers);
     console.log("Leaderboard created");
 
-    interaction.editReply({ embeds: [embed], files });
+    await interaction.editReply({ embeds: [embed], files });
   }
 });
 
@@ -114,7 +133,7 @@ async function addId(id: string): Promise<void> {
     const data = fs.readFileSync(idsFilePath, "utf-8");
     ids = JSON.parse(data);
   } else {
-    fs.writeFileSync(idsFilePath, JSON.stringify(ids), "utf-8");
+    fs.writeFileSync(idsFilePath, JSON.stringify(ids, null, 2), "utf-8");
   }
   ids.push(id);
   console.log("id added", id);
@@ -127,7 +146,31 @@ async function addId(id: string): Promise<void> {
   );
 }
 
-async function takeScreenshot(url: string, id: string): Promise<Player> {
+async function setIds(ids: string[]): Promise<void> {
+  fs.writeFileSync(idsFilePath, JSON.stringify(ids, null, 2), "utf-8");
+}
+
+async function checkIfPlayerExist(id: string): Promise<boolean> {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const formatId = id.replace("#", "/");
+  const url = `https://tactics.tools/player/euw/${formatId}`;
+  await page.goto(url);
+  await page.getByRole("button", { name: "Accept" }).click();
+  if (await page.getByText("Summoner ").isVisible()) {
+    await browser.close();
+    return false;
+  }
+  return true;
+}
+
+async function takeScreenshot(
+  url: string,
+  id: string
+): Promise<Player | undefined> {
+  if (!(await checkIfPlayerExist(id))) {
+    return undefined;
+  }
   const browser = await chromium.launch();
   const page = await browser.newPage();
   const screenshotPath = path.join(__dirname, "../screens", `${id}.png`);
