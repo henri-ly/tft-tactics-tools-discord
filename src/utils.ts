@@ -1,0 +1,129 @@
+import { EmbedBuilder } from "discord.js";
+import fs from "fs";
+import sharp from "sharp";
+
+const tftRanks = [
+  "Challenger",
+  "Grandmaster",
+  "Master",
+  "Diamond I",
+  "Diamond II",
+  "Diamond III",
+  "Diamond IV",
+  "Platinum I",
+  "Platinum II",
+  "Platinum III",
+  "Platinum IV",
+  "Gold I",
+  "Gold II",
+  "Gold III",
+  "Gold IV",
+  "Silver I",
+  "Silver II",
+  "Silver III",
+  "Silver IV",
+  "Bronze I",
+  "Bronze II",
+  "Bronze III",
+  "Bronze IV",
+  "Iron I",
+  "Iron II",
+  "Iron III",
+  "Iron IV",
+];
+
+const rankToIndex = new Map(tftRanks.map((rank, index) => [rank, index]));
+
+export function parseRankWithLP(rankWithLP: string) {
+  const match = rankWithLP.match(/^([a-zA-Z\s]+)\s(\d+)LP$/);
+  if (!match) {
+    throw new Error(`Invalid rank format: ${rankWithLP}`);
+  }
+  const rank = match[1].trim();
+  const lp = parseInt(match[2], 10);
+  return { rank, lp };
+}
+
+export function compareRanks(a: string, b: string): number {
+  const { rank: rankA, lp: lpA } = parseRankWithLP(a);
+  const { rank: rankB, lp: lpB } = parseRankWithLP(b);
+
+  const rankIndexA = rankToIndex.get(rankA) ?? 0;
+  const rankIndexB = rankToIndex.get(rankB) ?? 0;
+
+  if (rankIndexA === rankIndexB) {
+    return lpB - lpA; // Compare LP within the same rank
+  }
+
+  return rankIndexA - rankIndexB; // Compare ranks
+}
+
+export function getColorForRank(rank: string): string {
+  if (rank.includes("Challenger")) return "#FF0000"; // Red
+  if (rank.includes("Grandmaster")) return "#FF4500"; // OrangeRed
+  if (rank.includes("Master")) return "#8A2BE2"; // BlueViolet
+  if (rank.includes("Diamond")) return "#00FFFF"; // Aqua
+  if (rank.includes("Platinum")) return "#00FF00"; // Lime
+  if (rank.includes("Gold")) return "#FFD700"; // Gold
+  if (rank.includes("Silver")) return "#C0C0C0"; // Silver
+  if (rank.includes("Bronze")) return "#CD7F32"; // Bronze
+  return "#808080"; // Default Gray for Iron
+}
+
+export function getMedalForRank(index: number): string {
+  switch (index) {
+    case 0:
+      return "🥇"; // Gold medal
+    case 1:
+      return "🥈"; // Silver medal
+    case 2:
+      return "🥉"; // Bronze medal
+    default:
+      return "";
+  }
+}
+
+export type Player = { rank: string; path: string; id: string };
+
+export function createLeaderboardEmbed(data: Player[]): EmbedBuilder {
+  const embed = new EmbedBuilder()
+    .setTitle("Leaderboard TFT - by Henri")
+    .setColor("#FFD700"); // Set a default color
+
+  embed.setDescription("use !add <id#TAG> to add your id to the leaderboard");
+
+  const fieldValue = data.map((entry, index) => {
+    const medal = getMedalForRank(index);
+    return `${medal ?? index + 1} - ${entry.id} - ${entry.rank}`;
+  });
+
+  embed.addFields({
+    name: `# - ID - Rank`,
+    value: fieldValue.join("\n"),
+    inline: false,
+  });
+
+  embed.setTimestamp(new Date());
+
+  return embed;
+}
+
+export async function compressImage(filePath: string): Promise<void> {
+  const outputPath =
+    filePath.substring(0, filePath.length - 4) + "_compressed.png";
+  let quality = 20;
+
+  const originalImage = sharp(filePath);
+
+  const metadata = await originalImage.metadata();
+
+  const newWidth = Math.round((metadata.width ?? 0) * 0.7);
+  const newHeight = Math.round((metadata.height ?? 0) * 0.7);
+
+  await sharp(filePath)
+    .resize(newWidth, newHeight)
+    .png({ quality, compressionLevel: 9 }) // PNG does not have a quality setting; here it’s for consistency
+    .toFile(outputPath);
+
+  fs.unlinkSync(filePath); // Delete the original image
+}
