@@ -1,4 +1,3 @@
-import path from "path";
 import fs from "fs";
 import { idsFilePath, setIds } from "../utils";
 
@@ -9,6 +8,7 @@ export async function addId(id: string): Promise<void> {
     ids = JSON.parse(data);
   }
   ids.push(id);
+  console.log("ids", ids);
   console.log("id added", id);
 
   setIds(ids);

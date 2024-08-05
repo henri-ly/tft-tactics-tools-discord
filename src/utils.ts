@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 
-export const idsFilePath = path.join(__dirname, "../../", "ids.json");
+export const idsFilePath = path.join(__dirname, "../", "ids.json");
 
 const tftRanks = [
   "Challenger",

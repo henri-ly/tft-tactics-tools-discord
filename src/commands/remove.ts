@@ -1,8 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { setIds } from "../utils";
-
-export const idsFilePath = path.join(__dirname, "../../", "ids.json");
+import { idsFilePath, setIds } from "../utils";
 
 export async function removeId(id: string): Promise<void> {
   let ids: string[] = [];
