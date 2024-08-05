@@ -2,8 +2,10 @@ import { Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
 import "dotenv/config";
 import fs from "fs";
 import { env } from "process";
-import { addId, idsFilePath } from "./commands/add";
+import { addId } from "./commands/add";
 import { checkIfPlayerExist, generateEmbedLeaderboard } from "./commands/rank";
+import { removeId } from "./commands/remove";
+import { idsFilePath } from "./utils";
 
 // // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -53,8 +55,9 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "add") {
-    const id = interaction.options.getString("id");
+    const id = encodeURI(interaction.options.getString("id") || "");
 
+    console.log("Adding ID...", id);
     await interaction.deferReply();
     if (id && id.length < 30) {
       if (!id.includes("#")) {
@@ -77,6 +80,24 @@ client.on("interactionCreate", async (interaction) => {
       }
     } else {
       await interaction.editReply("Please provide an ID.");
+    }
+  }
+
+  if (interaction.commandName === "remove") {
+    const id = encodeURI(interaction.options.getString("id") || "");
+
+    console.log("Removing ID...", id);
+    if (id && id.length < 30) {
+      if (!id.includes("#")) {
+        await interaction.editReply(
+          "Please provide a valid ID. (ID should contain #)"
+        );
+      } else {
+        removeId(id);
+        await interaction.editReply(`ID ${id} removed successfully!`);
+      }
+    } else {
+      await interaction.editReply("Please provide an ID");
     }
   }
 

@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs";
-
-export const idsFilePath = path.join(__dirname, "../../", "ids.json");
+import { idsFilePath, setIds } from "../utils";
 
 export async function addId(id: string): Promise<void> {
   let ids: string[] = [];
@@ -13,14 +12,4 @@ export async function addId(id: string): Promise<void> {
   console.log("id added", id);
 
   setIds(ids);
-}
-
-export async function setIds(ids: string[]): Promise<void> {
-  const removeDuplicate = new Set(ids);
-
-  fs.writeFileSync(
-    idsFilePath,
-    JSON.stringify([...removeDuplicate], null, 2),
-    "utf-8"
-  );
 }

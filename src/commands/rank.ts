@@ -5,8 +5,8 @@ import {
   createLeaderboardEmbed,
   getURL,
   Player,
+  setIds,
 } from "../utils";
-import { setIds } from "./add";
 import { chromium } from "playwright";
 import path from "path";
 

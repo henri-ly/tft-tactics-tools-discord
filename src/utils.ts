@@ -1,6 +1,9 @@
 import { EmbedBuilder } from "discord.js";
 import fs from "fs";
+import path from "path";
 import sharp from "sharp";
+
+export const idsFilePath = path.join(__dirname, "../../", "ids.json");
 
 const tftRanks = [
   "Challenger",
@@ -132,4 +135,14 @@ export async function compressImage(filePath: string): Promise<void> {
     .toFile(outputPath);
 
   fs.unlinkSync(filePath); // Delete the original image
+}
+
+export async function setIds(ids: string[]): Promise<void> {
+  const removeDuplicate = new Set(ids);
+
+  fs.writeFileSync(
+    idsFilePath,
+    JSON.stringify([...removeDuplicate], null, 2),
+    "utf-8"
+  );
 }
