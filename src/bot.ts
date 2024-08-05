@@ -55,7 +55,7 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "add") {
-    const id = encodeURI(interaction.options.getString("id") || "");
+    const id = decodeURI(interaction.options.getString("id") || "");
 
     console.log("Adding ID...", id);
     await interaction.deferReply();
@@ -84,7 +84,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (interaction.commandName === "remove") {
-    const id = encodeURI(interaction.options.getString("id") || "");
+    const id = decodeURI(interaction.options.getString("id") || "");
 
     console.log("Removing ID...", id);
     if (id && id.length < 30) {
