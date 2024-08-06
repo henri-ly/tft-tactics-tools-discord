@@ -111,15 +111,16 @@ client.on("interactionCreate", async (interaction) => {
     const { embed, files } = await generateEmbedLeaderboard(ids);
 
     const totalFiles = files.length;
-    const filesLimit = 9;
+    const filesLimit = 8;
     const filesChunks = [];
 
     for (let i = 0; i < totalFiles; i += filesLimit) {
       filesChunks.push(files.slice(i, i + filesLimit));
     }
+    console.log(filesChunks);
     for (const [index, chunk] of filesChunks.entries()) {
       if (index === 0) {
-        await interaction.editReply({ embeds: [embed], files });
+        await interaction.editReply({ embeds: [embed], files: chunk });
       } else {
         await interaction.reply({ files: chunk });
       }
