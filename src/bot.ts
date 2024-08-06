@@ -110,7 +110,20 @@ client.on("interactionCreate", async (interaction) => {
 
     const { embed, files } = await generateEmbedLeaderboard(ids);
 
-    await interaction.editReply({ embeds: [embed], files });
+    const totalFiles = files.length;
+    const filesLimit = 9;
+    const filesChunks = [];
+
+    for (let i = 0; i < totalFiles; i += filesLimit) {
+      filesChunks.push(files.slice(i, i + filesLimit));
+    }
+    for (const [index, chunk] of filesChunks.entries()) {
+      if (index === 0) {
+        await interaction.editReply({ embeds: [embed], files });
+      } else {
+        await interaction.reply({ files: chunk });
+      }
+    }
     console.log(
       "Leaderboard created successfully at " + new Date().toISOString()
     );
