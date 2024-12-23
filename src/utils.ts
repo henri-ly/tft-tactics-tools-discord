@@ -82,7 +82,7 @@ export function getMedalForRank(index: number): string {
   }
 }
 
-export type Player = { rank: string; path: string; id: string };
+export type Player = { rank: string; path: string; id: string; games: string };
 
 export function createLeaderboardEmbed(data: Player[]): EmbedBuilder {
   const embed = new EmbedBuilder()
@@ -111,7 +111,7 @@ export function createLeaderboardEmbed(data: Player[]): EmbedBuilder {
     name: `Rank`,
     value: data
       .map((entry) => {
-        return entry.rank;
+        return `${entry.rank} (Games: ${entry.games})`;
       })
       .join("\n"),
     inline: true,

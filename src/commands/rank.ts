@@ -39,7 +39,10 @@ export async function checkIfPlayerExist(id: string): Promise<boolean> {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(getURL(id));
-  await page.getByRole("button", { name: "Accept" }).click();
+  const acceptButton = page.getByRole("button", { name: "Accept" })
+  if (await acceptButton.isVisible()) {
+    await acceptButton.click();
+  }
   if (await page.getByText("Summoner ").isVisible()) {
     await browser.close();
     return false;
@@ -56,29 +59,49 @@ async function takeScreenshot(
   const screenshotPath = path.join(__dirname, "../../screens", `${id}.png`);
   console.log(`Connecting to ${url} ...`);
   await page.goto(url);
-  await page.getByRole("button", { name: "Accept" }).click();
-  await page.getByRole("tab", { name: "Ranked" }).click();
-  await page.locator("#menu").evaluate((el) => (el.style.display = "none"));
-  await page
-    .locator("div")
-    .filter({ hasText: /^LeaderboardsWrapped$/ })
-    .first()
-    .evaluate((el) => (el.style.display = "none"));
-  await page
-    .locator("div:nth-child(2) > div:nth-child(2) > div:nth-child(2)")
-    .first()
-    .screenshot({
+  try {
+    const acceptButton = page.getByRole("button", { name: "Accept" })
+    if (await acceptButton.isVisible()) {
+      await acceptButton.click();
+    }
+    const agreeButton = page.getByRole("button", { name: "Agree", exact: true })
+    if (await agreeButton.isVisible()) {
+      await agreeButton.click();
+    }
+    const rankedTab = page.getByRole("tab", { name: "Ranked" })
+    if (await rankedTab.isVisible()) {
+      await page.getByRole("tab", { name: "Ranked" }).click();
+    }
+    await page.locator("#menu").evaluate((el) => (el.style.display = "none"));
+    await page
+      .locator("div")
+      .filter({ hasText: /^LeaderboardsWrapped$/ })
+      .first()
+      .evaluate((el) => (el.style.display = "none"));
+    await page
+      .locator("div:nth-child(2) > div:nth-child(2) > div:nth-child(2)")
+      .first()
+      .screenshot({
+        path: screenshotPath,
+      });
+
+    const rank = await page
+      .locator(
+        '//*[@id="content-container"]/div/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div[7]/div[2]/div[1]'
+      )
+      .allTextContents();
+
+    const games = await page.locator('//*[@id="content-container"]/div/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div').allTextContents();
+
+    await browser.close();
+    console.log(`Screenshot taken for ${id}`);
+    await compressImage(screenshotPath);
+    return { rank: rank[0], path: `./screens/${id}_compressed.png`, id, games: games[0] };
+  } catch (e) {
+    console.log("FAILED TO TAKE SCREENSHOT OF :", url);
+    await page.screenshot({
       path: screenshotPath,
     });
-
-  const rank = await page
-    .locator(
-      '//*[@id="content-container"]/div/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div[7]/div[2]/div[1]'
-    )
-    .allTextContents();
-
-  await browser.close();
-  console.log(`Screenshot taken for ${id}`);
-  await compressImage(screenshotPath);
-  return { rank: rank[0], path: `./screens/${id}_compressed.png`, id };
+    throw e;
+  }
 }
