@@ -1,0 +1,10 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    init: true # reaps the Chromium child processes
+    shm_size: 1gb # Chromium crashes on Docker's default 64 MB /dev/shm
+    volumes:
+      - ./ids.json:/app/ids.json # leaderboard data, must exist before the first start
+      - ./logs:/app/logs # /resume call history
