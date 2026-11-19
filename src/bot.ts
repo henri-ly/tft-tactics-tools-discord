@@ -5,10 +5,13 @@ import { env } from "process";
 import { addId } from "./commands/add";
 import { checkIfPlayerExist, generateEmbedLeaderboard } from "./commands/rank";
 import { removeId } from "./commands/remove";
+import { resume, resumeCommand } from "./commands/resume";
 import { idsFilePath } from "./utils";
 
 // // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent],
+});
 const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN as string);
 
 const commands = [
@@ -28,6 +31,7 @@ const commands = [
     name: "rank",
     description: "Show the TFT leaderboards",
   },
+  resumeCommand,
 ];
 
 (async () => {
@@ -98,6 +102,20 @@ client.on("interactionCreate", async (interaction) => {
       }
     } else {
       await interaction.editReply("Please provide an ID");
+    }
+  }
+
+  if (interaction.commandName === "resume") {
+    try {
+      await resume(interaction);
+    } catch (error) {
+      // An unhandled rejection would crash the bot and leave the user on "thinking…".
+      console.error("resume failed", error);
+      const content = "Le résumé a échoué, réessaie plus tard.";
+      await (interaction.deferred || interaction.replied
+        ? interaction.editReply(content)
+        : interaction.reply({ content, ephemeral: true })
+      ).catch(() => {});
     }
   }
 
